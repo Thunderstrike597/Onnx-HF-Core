@@ -1,0 +1,52 @@
+{
+  "jars": [
+    {
+      "identifier": {
+        "group": "com.microsoft.onnxruntime",
+        "artifact": "onnxruntime"
+      },
+      "version": {
+        "range": "[1.20.0,1.21.0)",
+        "artifactVersion": "1.20.0"
+      },
+      "path": "META-INF/jarjar/onnxruntime-1.20.0.jar",
+      "isObfuscated": false
+    },
+    {
+      "identifier": {
+        "group": "ai.djl:api",
+        "artifact": "api"
+      },
+      "version": {
+        "range": "[0.36.0,0.37.0)",
+        "artifactVersion": "0.37.0"
+      },
+      "path": "META-INF/jarjar/api-0.36.0.jar",
+      "isObfuscated": false
+    },
+    {
+      "identifier": {
+        "group": "ai.djl.huggingface:tokenizers",
+        "artifact": "tokenizers"
+      },
+      "version": {
+        "range": "[0.34.0,0.35.0)",
+        "artifactVersion": "0.34.0"
+      },
+      "path": "META-INF/jarjar/tokenizers-0.34.0.jar",
+      "isObfuscated": false
+    },
+    {
+      "identifier": {
+        "group": "ai.djl.onnxruntime:onnxruntime-engine",
+        "artifact": "onnxruntime-engine"
+      },
+      "version": {
+        "range": "[0.28.0,0.39.0)",
+        "artifactVersion": "0.28.0"
+      },
+      "path": "META-INF/jarjar/onnxruntime-engine-0.28.0.jar",
+      "isObfuscated": false
+    }
+  ]
+}
