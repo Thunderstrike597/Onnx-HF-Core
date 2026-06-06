@@ -1,5 +1,6 @@
 package net.kenji.ai_voice_lib;
 
+import net.kenji.ai_voice_lib.api.utils.SpellCorrectionUtils;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -28,6 +29,7 @@ public class OnnxHFCore {
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
+        SpellCorrectionUtils.initSpellCheck();
     }
 
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent

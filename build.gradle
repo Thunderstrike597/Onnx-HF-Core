@@ -140,6 +140,7 @@ sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 repositories {
     mavenLocal()
+    mavenCentral()
     maven { url = 'https://oss.sonatype.org/content/repositories/snapshots' }  // Needed for snapshots
     maven {
         name = "Illusive Soulworks maven"
@@ -188,7 +189,15 @@ dependencies {
     jarJar('ai.djl.huggingface:tokenizers:0.34.0') {
         jarJar.ranged(it, '[0.28.0, 0.29.0)')
     }
-    implementation "ai.djl.onnxruntime:onnxruntime-engine:0.28.0"
+    implementation('io.github.mightguy:symspell-lib:6.6.154') {
+        exclude group: 'org.springframework.boot'
+        exclude group: 'org.springframework'
+    }
+    implementation files('libs/symspell-lib-6.6.154.jar')
+    implementation('com.sangupta:murmur:1.0.0')
+    jarJar('com.sangupta:murmur:1.0.0') {
+        jarJar.ranged(it, '[1.0,2.0)')
+    }
     //implementation fg.deobf("curse.maven:oculus-581495:6020952")
 
     //implementation fg.deobf("curse.maven:ydms-weapon-master-608235:5022313")
@@ -246,7 +255,7 @@ java {
 
 // -------------------- Dev Jar (DEOBF) --------------------
 tasks.named('jar', Jar).configure {
-    archiveBaseName = "AiVoiceLib-Forge"
+    archiveBaseName = "OnnxHfCore-Forge"
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     manifest {
         attributes([
@@ -264,12 +273,13 @@ tasks.named('jar', Jar).configure {
 // -------------------- Forge Reobf Wiring --------------------
 // Tell ForgeGradle WHICH jar to reobfuscate
 reobf {
+    jar {}
     jarJar {}
 }
 
 // Build should ALSO produce a reobf jar
 tasks.named('build') {
-    dependsOn 'reobfJarJar'
+    dependsOn 'reobfJar', 'reobfJarJar'
 }
 
 // -------------------- Explicit Production Task --------------------

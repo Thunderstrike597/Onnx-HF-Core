@@ -1,27 +1,20 @@
 package net.kenji.ai_voice_lib.api.speech_management;
 
 import ai.onnxruntime.*;
-import com.mojang.datafixers.util.Pair;
 import net.kenji.ai_voice_lib.OnnxHFCore;
+import net.kenji.ai_voice_lib.api.utils.OnnxLoadingUtils;
+import net.kenji.ai_voice_lib.api.OrtSessionEnvironment;
 import org.jline.utils.Log;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class VoiceToTextHandler {
-    private final Map<Integer, String> vocab = new HashMap<>();
     private static final float VAD_RMS_THRESHOLD = 0.01f; // tune this
 
-    private OrtEnvironment env;
-    private OrtSession session;
+    private OrtSessionEnvironment ortEnvSession;
 
     private static final int SAMPLE_RATE = 16000;
     private static String MODEL_NAME = "model";
@@ -36,138 +29,21 @@ public class VoiceToTextHandler {
 
     public void init() {
         Thread initThread = new Thread(() -> {
-            try {
-                Log.info("=== Starting ONNX Speech Recognition (ORT) ===");
-
-                Path modelDir = Paths.get(
-                        "ai_models/" + OnnxHFCore.MODID + "/model/sense_voice"
-                );
-                Files.createDirectories(modelDir);
-
-                Map<String, Long> modelFiles = new HashMap<>();
-
-                for (String fileName : filesToCheck) {
-                    try (InputStream stream = VoiceToTextHandler.class
-                            .getResourceAsStream("/assets/" + OnnxHFCore.MODID + "/model/sense_voice/" + fileName)) {
-                        if (stream != null) {
-                            long size = stream.transferTo(OutputStream.nullOutputStream());
-                            modelFiles.put(fileName, size);
-                            Log.info("Resource found: " + fileName + " — " + size + " bytes");
-                        }
-                    }
-                }
-
-                boolean allFilesReady = true; // <-- track success
-                for (String fileName : modelFiles.keySet()) {
-                    Path outPath = modelDir.resolve(fileName);
-                    boolean needsExtract = !Files.exists(outPath) || Files.size(outPath) == 0;
-
-                    if (needsExtract) {
-                        Log.info("Extracting " + fileName + "...");
-                        try (InputStream in = getClass().getResourceAsStream(
-                                "/assets/" + OnnxHFCore.MODID + "/model/sense_voice/" + fileName)) {
-                            if (in == null) {
-                                Log.warn("Resource not found in jar: " + fileName);
-                                allFilesReady = false; // <-- mark failure
-                                continue;
-                            }
-                            Files.copy(in, outPath, StandardCopyOption.REPLACE_EXISTING);
-                            long size = Files.size(outPath);
-                            Log.info("Extracted " + fileName + " — " + size + " bytes");
-                            if (size == 0) {
-                                Log.warn("WARNING: " + fileName + " extracted as 0 bytes!");
-                                allFilesReady = false; // <-- mark failure
-                            }
-                        }
-                    } else {
-                        Log.info("Already extracted: " + fileName + " (" + Files.size(outPath) + " bytes)");
-                    }
-                }
-
-                // Wait until all files are valid (e.g. after first-run extraction)
-                int maxWaitSeconds = 60;
-                int waited = 0;
-                List<String> validFileNames = new ArrayList<>();
-                while (!allFilesReady) {
-                    if (waited >= maxWaitSeconds) {
-                        Log.error("❌ Timed out waiting for model files to be ready.");
-                        return;
-                    }
-                    Log.info("⏳ Waiting for model files to be ready... (" + waited + "s)");
-                    Thread.sleep(1000);
-                    waited++;
-
-                    // Re-check all files
-                    allFilesReady = true;
-
-                    for (Map.Entry<String, Long> file : modelFiles.entrySet()) {
-                        Path outPath = modelDir.resolve(file.getKey());
-                        if (Files.exists(outPath) && Files.size(outPath) >= file.getValue()) {
-                            validFileNames.add(file.getKey());
-                            break;
-                        }
-                    }
-                    if(validFileNames.size() < modelFiles.size()){
-                        allFilesReady = false;
-                    }
-                }
-
-                Path modelFile = modelDir.resolve(MODEL_NAME + ".onnx");
-                Log.info("Loading session from: " + modelFile.toAbsolutePath());
-
-                env = OrtEnvironment.getEnvironment();
-                OrtSession.SessionOptions options = new OrtSession.SessionOptions();
-                options.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT);
-                options.setIntraOpNumThreads(Runtime.getRuntime().availableProcessors());
-                session = env.createSession(modelFile.toString(), options);
-
-                Log.info("✅ ONNX Runtime model loaded successfully");
-                loadVocab(modelDir);
-
-            } catch (Exception e) {
-                Log.error("❌ Failed to load ONNX model", e);
-                e.printStackTrace();
-            }
+            Path outputDir = Paths.get(
+                    "ai_models/" + OnnxHFCore.MODID + "/model/sense_voice"
+            );
+            String modelDir = "/assets/" + OnnxHFCore.MODID + "/model/sense_voice/";
+            ortEnvSession = OnnxLoadingUtils.startOrtEnvSession(OnnxHFCore.class ,modelDir, outputDir, MODEL_NAME, filesToCheck, false);
         });
         initThread.setDaemon(true);
         initThread.start();
     }
-    private void loadVocab(Path modelDir) {
-        try {
-            Path vocabPath = modelDir.resolve("vocab.json");
 
-            String json = Files.readString(vocabPath);
-
-            // VERY SIMPLE PARSER (works for HuggingFace vocab.json)
-            // format: "token": index OR index: token depending on file
-
-            com.google.gson.JsonObject obj =
-                    com.google.gson.JsonParser.parseString(json).getAsJsonObject();
-
-            for (String key : obj.keySet()) {
-                String value = obj.get(key).getAsString();
-
-                try {
-                    int index = Integer.parseInt(key);
-                    vocab.put(index, value);
-                } catch (NumberFormatException e) {
-                    try {
-                        int index = Integer.parseInt(value);
-                        vocab.put(index, key);
-                    } catch (Exception ignored) {}
-                }
-                //Log.info("Example vocab entry 0: " + vocab.get(0));
-            }
-
-            Log.info("Loaded vocab size: " + vocab.size());
-
-        } catch (Exception e) {
-            Log.error("Failed to load vocab", e);
-        }
-    }
     public String transcribe(short[] rawPcm) {
-        if (session == null || rawPcm == null || rawPcm.length == 0) return null;
-
+        if (ortEnvSession == null || !ortEnvSession.isEnvironmentLoaded() || rawPcm == null || rawPcm.length == 0) {
+            Log.warn("VOICE TRANSCRIBE FAILED! ORT SESSION IS EITHER 'NULL' OR IS NOT LOADED!!!");
+            return null;
+        }
         try {
             // 1. Convert to Floats (-1.0 to 1.0) and downsample
             float[] audio = new float[rawPcm.length];
@@ -206,17 +82,17 @@ public class VoiceToTextHandler {
             feature3D[0] = stackedFeatures;
 
         // 4. Create the multi-input parameters required by the graph (Fixed to 32-bit Integers)
-            OnnxTensor tensorX = OnnxTensor.createTensor(env, feature3D);
+            OnnxTensor tensorX = OnnxTensor.createTensor(ortEnvSession.env(), feature3D);
 
         // IMPORTANT: x_length must reflect the STACKED count now, not raw frames!
             int[] lensData = new int[]{ stackedFrameCount };
-            OnnxTensor tensorXLens = OnnxTensor.createTensor(env, lensData);
+            OnnxTensor tensorXLens = OnnxTensor.createTensor(ortEnvSession.env(), lensData);
 
             int[] langData = new int[]{ 2 };
-            OnnxTensor tensorLang = OnnxTensor.createTensor(env, langData);
+            OnnxTensor tensorLang = OnnxTensor.createTensor(ortEnvSession.env(), langData);
 
             int[] normData = new int[]{ 1 };
-            OnnxTensor tensorNorm = OnnxTensor.createTensor(env, normData);
+            OnnxTensor tensorNorm = OnnxTensor.createTensor(ortEnvSession.env(), normData);
 
         // Map inputs to the exact entry port identifiers
             Map<String, OnnxTensor> inputs = new HashMap<>();
@@ -225,7 +101,7 @@ public class VoiceToTextHandler {
             inputs.put("language", tensorLang);
             inputs.put("text_norm", tensorNorm);
 
-            try (OrtSession.Result result = session.run(inputs)) {
+            try (OrtSession.Result result = ortEnvSession.session().run(inputs)) {
                 if (result == null || result.size() == 0) {
                     Log.warn("ONNX session executed successfully but returned an empty result mapping.");
                     return "";
@@ -298,7 +174,7 @@ public class VoiceToTextHandler {
 
 
     private void appendToken(long id, StringBuilder decodedText) {
-        String word = vocab.get((int) id);
+        String word = ortEnvSession.getVocab().get((int) id);
         if (word == null) return;
 
         // 1. Catch and convert ALL types of special SenseVoice space characters
@@ -423,7 +299,7 @@ public class VoiceToTextHandler {
 
             // skip blanks + repeats
             if (bestIndex != lastIndex && bestIndex != 0) {
-                String token = vocab.get(bestIndex);
+                String token = ortEnvSession.getVocab().get(bestIndex);
 
                 if (token != null &&
                         !token.equals("<pad>") &&
@@ -458,8 +334,8 @@ public class VoiceToTextHandler {
 
     public void close() {
         try {
-            if (session != null) session.close();
-            if (env != null) env.close();
+            if (ortEnvSession != null && ortEnvSession.session() != null) ortEnvSession.session().close();
+            if (ortEnvSession != null && ortEnvSession.env() != null) ortEnvSession.env().close();
         } catch (Exception e) {
             Log.error("Error closing ONNX session", e);
         }

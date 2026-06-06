@@ -47,6 +47,30 @@
       },
       "path": "META-INF/jarjar/onnxruntime-engine-0.28.0.jar",
       "isObfuscated": false
+    },
+    {
+      "identifier": {
+        "group": "io.github.mightguy:symspell-lib",
+        "artifact": "symspell-lib"
+      },
+      "version": {
+        "range": "[6.6.154,6.7.0)",
+        "artifactVersion": "6.6.154"
+      },
+      "path": "META-INF/jarjar/symspell-lib-6.6.154.jar",
+      "isObfuscated": false
+    },
+    {
+      "identifier": {
+        "group": "com.sangupta:murmur",
+        "artifact": "murmur:"
+      },
+      "version": {
+        "range": "[1.0.0, 1.1.0)",
+        "artifactVersion": "1.0.0"
+      },
+      "path": "META-INF/jarjar/murmur-1.0.0.jar",
+      "isObfuscated": false
     }
   ]
 }
