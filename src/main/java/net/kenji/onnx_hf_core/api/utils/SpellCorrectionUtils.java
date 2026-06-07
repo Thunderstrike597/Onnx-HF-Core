@@ -1,12 +1,11 @@
-package net.kenji.ai_voice_lib.api.utils;
+package net.kenji.onnx_hf_core.api.utils;
 
 import io.github.mightguy.spellcheck.symspell.api.DataHolder;
-import io.github.mightguy.spellcheck.symspell.api.SpellChecker;
 import io.github.mightguy.spellcheck.symspell.common.*;
 import io.github.mightguy.spellcheck.symspell.exception.SpellCheckException;
 import io.github.mightguy.spellcheck.symspell.impl.InMemoryDataHolder;
 import io.github.mightguy.spellcheck.symspell.impl.SymSpellCheck;
-import net.kenji.ai_voice_lib.OnnxHFCore;
+import net.kenji.onnx_hf_core.OnnxHFCore;
 import org.jline.utils.Log;
 
 import java.io.BufferedReader;

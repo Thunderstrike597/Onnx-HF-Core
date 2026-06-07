@@ -1,4 +1,4 @@
-package net.kenji.ai_voice_lib.api;
+package net.kenji.onnx_hf_core.api;
 
 import java.util.Map;
 

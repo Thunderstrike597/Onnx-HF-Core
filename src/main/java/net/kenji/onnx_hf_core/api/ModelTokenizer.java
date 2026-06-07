@@ -1,12 +1,9 @@
-package net.kenji.ai_voice_lib.api;
+package net.kenji.onnx_hf_core.api;
 
 import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer;
 
-import java.io.File;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 
 import static com.mojang.text2speech.Narrator.LOGGER;
 

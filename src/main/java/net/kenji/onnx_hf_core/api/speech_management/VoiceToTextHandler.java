@@ -1,9 +1,9 @@
-package net.kenji.ai_voice_lib.api.speech_management;
+package net.kenji.onnx_hf_core.api.speech_management;
 
 import ai.onnxruntime.*;
-import net.kenji.ai_voice_lib.OnnxHFCore;
-import net.kenji.ai_voice_lib.api.utils.OnnxLoadingUtils;
-import net.kenji.ai_voice_lib.api.OrtSessionEnvironment;
+import net.kenji.onnx_hf_core.OnnxHFCore;
+import net.kenji.onnx_hf_core.api.utils.OnnxLoadingUtils;
+import net.kenji.onnx_hf_core.api.OrtSessionEnvironment;
 import org.jline.utils.Log;
 
 import java.nio.file.Path;

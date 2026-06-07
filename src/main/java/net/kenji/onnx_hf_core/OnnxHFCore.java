@@ -1,6 +1,6 @@
-package net.kenji.ai_voice_lib;
+package net.kenji.onnx_hf_core;
 
-import net.kenji.ai_voice_lib.api.utils.SpellCorrectionUtils;
+import net.kenji.onnx_hf_core.api.utils.SpellCorrectionUtils;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;

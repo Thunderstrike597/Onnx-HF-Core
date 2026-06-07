@@ -1,6 +1,5 @@
-package net.kenji.ai_voice_lib.api;
+package net.kenji.onnx_hf_core.api;
 
-import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtSession;
 
@@ -17,6 +16,9 @@ public record OrtSessionEnvironment(OrtEnvironment env, OrtSession session, Mode
     }
     public boolean isEnvironmentLoaded(){
         return this.env != null && this.session != null && this.vocab != null && this.modelDir != null;
+    }
+    public boolean isEnvironmentWithTokenizerLoaded(){
+        return this.env != null && this.session != null && this.vocab != null && this.tokenizer != null && this.modelDir != null;
     }
     public Map<Integer, String> getVocab(){
         return this.vocab.vocab();

@@ -1,19 +1,17 @@
-package net.kenji.ai_voice_lib.api.utils;
+package net.kenji.onnx_hf_core.api.utils;
 
-import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtSession;
-import net.kenji.ai_voice_lib.api.AiVocab;
-import net.kenji.ai_voice_lib.api.ModelTokenizer;
-import net.kenji.ai_voice_lib.api.OrtSessionEnvironment;
-import net.kenji.ai_voice_lib.api.speech_management.VoiceToTextHandler;
+import net.kenji.onnx_hf_core.api.AiVocab;
+import net.kenji.onnx_hf_core.api.ModelTokenizer;
+import net.kenji.onnx_hf_core.api.OrtSessionEnvironment;
 import org.jline.utils.Log;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -21,7 +19,6 @@ import java.util.Map;
 
 public class OnnxLoadingUtils {
 
-    private static final int EOS_TOKEN = 50256;
 
     public static OrtSessionEnvironment startOrtEnvSession(Class<?> modelClass,String modelDir, Path outputDir, String mainFileName, String[] filesToCheck, boolean initializeTokenizer) {
         try {
@@ -43,7 +40,10 @@ public class OnnxLoadingUtils {
             boolean allFilesReady = true; // <-- track success
             for (String fileName : modelFiles.keySet()) {
                 Path outPath = outputDir.resolve(fileName);
-                boolean needsExtract = !Files.exists(outPath) || Files.size(outPath) == 0;
+                long fileSize = modelFiles.get(fileName);
+                boolean needsExtract = !Files.exists(outPath)
+                        || Files.size(outPath) == 0
+                        || Files.size(outPath) != fileSize;
 
                 if (needsExtract) {
                     Log.info("Extracting " + fileName + "...");
@@ -54,12 +54,13 @@ public class OnnxLoadingUtils {
                             allFilesReady = false; // <-- mark failure
                             continue;
                         }
-                        Files.copy(in, outPath, StandardCopyOption.REPLACE_EXISTING);
-                        long size = Files.size(outPath);
-                        Log.info("Extracted " + fileName + " — " + size + " bytes");
-                        if (size == 0) {
+
+                        copyWithProgress(in, outPath, fileSize, fileName);
+                        long writtenSize = Files.size(outPath);
+                        Log.info("Extracted " + fileName + " — " + writtenSize + " bytes");
+                        if (writtenSize == 0) {
                             Log.warn("WARNING: " + fileName + " extracted as 0 bytes!");
-                            allFilesReady = false; // <-- mark failure
+                            allFilesReady = false;
                         }
                     }
                 } else {
@@ -117,6 +118,27 @@ public class OnnxLoadingUtils {
         }
         Log.error("❌ Unexpectedly Failed to load ONNX model with no output error!!");
         return null;
+    }
+
+    private static void copyWithProgress(InputStream in, Path outPath, long totalSize, String fileName) throws IOException, IOException {
+        try (OutputStream out = Files.newOutputStream(outPath)) {
+            byte[] buffer = new byte[8192];
+            long bytesCopied = 0;
+            int lastLoggedPercent = -1;
+            int read;
+            while ((read = in.read(buffer)) != -1) {
+                out.write(buffer, 0, read);
+                bytesCopied += read;
+                if (totalSize > 0) {
+                    int percent = (int) ((bytesCopied * 100) / totalSize);
+                    int bucket = percent / 10 * 10; // log every 10%
+                    if (bucket != lastLoggedPercent) {
+                        Log.info("  Extracting " + fileName + "... " + bucket + "%");
+                        lastLoggedPercent = bucket;
+                    }
+                }
+            }
+        }
     }
 
     private static AiVocab loadVocab(Path modelDir) {

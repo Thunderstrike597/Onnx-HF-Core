@@ -1,4 +1,4 @@
-package net.kenji.ai_voice_lib.api.speech_management;
+package net.kenji.onnx_hf_core.api.speech_management;
 
 public class AudioFeatureExtractor {
 
